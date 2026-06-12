@@ -22,7 +22,9 @@ h1{color:#f0c040;font-size:1.4em;margin:8px 0 4px;text-shadow:0 0 10px #f0c04088
 #sudoku-board{display:grid;grid-template-columns:repeat(9,1fr);gap:1px;background:#444;border:2px solid #888;margin:8px 0}
 .cell{background:#1e2d4a;width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:0.9em;cursor:pointer;border:none;color:#eee;transition:background 0.15s}
 .cell:hover{background:#2a3f6a}
-.cell.selected{background:#0f3460;color:#f0c040}
+.cell.selected{background:#0f3460!important;color:#f0c040}
+.cell.highlight{background:#1a2a3e}
+.cell.same-num{background:#2a3a5e}
 .cell.given{color:#88ccff;font-weight:bold;cursor:default}
 .cell.given:hover{background:#1e2d4a}
 .cell.wrong{background:#4a1e1e;color:#ff6666}
@@ -315,6 +317,19 @@ function isValid(g, pos, n) {
 function renderBoard() {
   const board = document.getElementById('sudoku-board');
   board.innerHTML = '';
+  
+  // 選択セルの行・列・ブロック計算
+  let selRow=-1, selCol=-1, selBr=-1, selBc=-1;
+  if (ST.selectedCell !== null) {
+    selRow = Math.floor(ST.selectedCell/9);
+    selCol = ST.selectedCell%9;
+    selBr = Math.floor(selRow/3)*3;
+    selBc = Math.floor(selCol/3)*3;
+  }
+  // 選択セルの数字（同じ数字をハイライト）
+  const selVal = ST.selectedCell !== null && ST.puzzle && ST.userGrid
+    ? (ST.puzzle[ST.selectedCell] || ST.userGrid[ST.selectedCell]) : 0;
+  
   for (let i=0;i<81;i++) {
     const cell = document.createElement('button');
     cell.className = 'cell';
@@ -324,6 +339,22 @@ function renderBoard() {
     
     const pv = ST.puzzle ? ST.puzzle[i] : 0;
     const uv = ST.userGrid ? ST.userGrid[i] : 0;
+    const cellVal = pv || uv;
+    
+    // ハイライト
+    if (ST.selectedCell !== null) {
+      const cr = Math.floor(i/9), cc = i%9;
+      const cbr = Math.floor(cr/3)*3, cbc = Math.floor(cc/3)*3;
+      if (i === ST.selectedCell) {
+        cell.classList.add('selected');
+      } else if (cr===selRow || cc===selCol || (cbr===selBr && cbc===selBc)) {
+        cell.style.background = '#1a2a3e';
+      }
+      // 同じ数字をハイライト
+      if (selVal > 0 && cellVal === selVal) {
+        cell.style.background = '#2a3a5e';
+      }
+    }
     
     if (pv !== 0) {
       cell.textContent = pv;
@@ -333,7 +364,7 @@ function renderBoard() {
       if (ST.solution && uv !== ST.solution[i]) cell.classList.add('wrong');
       else cell.classList.add('correct');
     }
-    if (ST.selectedCell === i) cell.classList.add('selected');
+    
     cell.addEventListener('click', ()=>selectCell(i));
     board.appendChild(cell);
   }
